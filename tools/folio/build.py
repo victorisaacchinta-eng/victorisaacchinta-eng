@@ -92,19 +92,36 @@ PALETTES = {
     "dark": dict(paper="#100F0D", ink="#E8E1D1", rubric="#DE5B40", muted="#8E8676", rule="#E8E1D1"),
 }
 
-# Motion: a plate "pulled from the press" on load, a slowly turning seal, and
-# the masthead line cycling. All of it switches off under prefers-reduced-motion.
+# Motion: a sheen of light passes over each engraving on load, the seal turns,
+# and the masthead line cycles. The first frame is always complete, so a frozen
+# render (background tab, link preview, reduced motion) still shows everything.
 MOTION_CSS = """
-@keyframes pull{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
-.pull{animation:pull 2.4s cubic-bezier(.22,.7,.18,1) both}
-.d1{animation-delay:.15s}.d2{animation-delay:.45s}.d3{animation-delay:.75s}.d4{animation-delay:1.05s}
+@keyframes sweepM{from{transform:translateY(0)}to{transform:translateY(900px)}}
+@keyframes sweepC{from{transform:translateY(0)}to{transform:translateY(460px)}}
+.sweepM{animation:sweepM 2.8s cubic-bezier(.4,0,.2,1) .2s both}
+.sweepC{animation:sweepC 2.2s cubic-bezier(.4,0,.2,1) both}
+.d1{animation-delay:.2s}.d2{animation-delay:.5s}.d3{animation-delay:.8s}.d4{animation-delay:1.1s}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{transform-box:view-box;animation:spin 60s linear infinite}
 @keyframes cyc{0%{opacity:0;transform:translateY(14px)}5%{opacity:1;transform:none}22%{opacity:1;transform:none}27%{opacity:0;transform:translateY(-10px)}100%{opacity:0}}
-.ph{opacity:0;animation:cyc 18s infinite}
-.ph1{animation-delay:0s}.ph2{animation-delay:4.5s}.ph3{animation-delay:9s}.ph4{animation-delay:13.5s}
-@media (prefers-reduced-motion:reduce){.pull,.spin,.ph{animation:none}.ph{opacity:0}.ph1{opacity:1}}
+.ph{opacity:0;animation:cyc 18s infinite}.ph1{opacity:1}
+.ph1{animation-delay:-.9s}.ph2{animation-delay:3.6s}.ph3{animation-delay:8.1s}.ph4{animation-delay:12.6s}
+@media (prefers-reduced-motion:reduce){.sweepM,.sweepC,.spin,.ph{animation:none}.ph{opacity:0}.ph1{opacity:1}}
 """
+
+
+def sheen_defs(pl):
+    p = pl.pal["paper"]
+    pl.add(f'<defs><linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">'
+           f'<stop offset="0" stop-color="{p}" stop-opacity="0"/>'
+           f'<stop offset=".5" stop-color="{p}" stop-opacity=".8"/>'
+           f'<stop offset="1" stop-color="{p}" stop-opacity="0"/></linearGradient></defs>')
+
+
+def sheen(pl, cid, shape, w, cls):
+    """A band of paper-coloured light that starts above the shape and passes down through it once."""
+    pl.add(f'<clipPath id="{cid}">{shape}</clipPath><g clip-path="url(#{cid})">'
+           f'<rect class="{cls}" x="-10" y="-200" width="{w + 20}" height="150" fill="url(#sheen)"/></g>')
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -741,7 +758,8 @@ def build_masthead(F, mode, pal, cache):
     L, Hm, mask, face = cache["mast"]
     clip = lambda x, y: np.ones_like(x, bool)
     d = engraving(L, Hm, mask, mode, clip, spacing=6.0, maxw=5.4, disp=9)
-    pl.add(f'<g class="pull" transform="translate({px} {py})"><path fill="{ink}" d="{d}"/>')
+    sheen_defs(pl)
+    pl.add(f'<g transform="translate({px} {py})"><path fill="{ink}" d="{d}"/>')
     pl.add(silhouette(mask, ink, 1.3))
     insz = serif.fit(MAST["inscription"], 44, face["w"] * 0.62, 0.22)
     tw = serif.width(MAST["inscription"], insz, 0.22)
@@ -750,6 +768,7 @@ def build_masthead(F, mode, pal, cache):
     pl.add(f'<rect x="{fmt(face["cx"] - tw / 2 - 16)}" y="{fmt(face["cy"] - insz * 0.62 + 6)}" '
            f'width="{fmt(tw + 32)}" height="{fmt(insz * 1.24 - 12)}" fill="none" stroke="{ink}" stroke-width="1"/>')
     pl.text(serif, MAST["inscription"], insz, face["cx"], face["cy"] + insz * 0.34, ink, 0.22, "middle")
+    sheen(pl, "cm", f'<rect width="{pw}" height="{ph}"/>', pw, "sweepM")
     pl.add("</g>")
     pl.add(f'<rect x="{px - 10}" y="{py - 10}" width="{pw + 20}" height="{ph + 20}" fill="none" stroke="{ink}" stroke-width="1.6"/>')
     pl.add(f'<rect x="{px - 4}" y="{py - 4}" width="{pw + 8}" height="{ph + 8}" fill="none" stroke="{ink}" stroke-width="0.8"/>')
@@ -797,6 +816,7 @@ def build_credo(F, mode, pal, cache):
     desc = "Credo. " + " ".join(f"{c['title']} {c['body']}" for c in CREDO)
     pl = Plate(W, H, pal, "Credo", desc)
     pl.style(MOTION_CSS)
+    sheen_defs(pl)
     ink, rub, mut = pal["ink"], pal["rubric"], pal["muted"]
     serif, ital, mono, monom = F["serif"], F["ital"], F["mono"], F["monom"]
     M = 72
@@ -822,8 +842,10 @@ def build_credo(F, mode, pal, cache):
         L, Hm, mask = cache[key]
         clip = lambda x, y: np.hypot(x - S / 2, y - S / 2) < R - 5
         d = engraving(L, Hm, mask, mode, clip, spacing=4.2, maxw=3.8, disp=6)
-        pl.add(f'<g class="pull d{i + 1}" transform="translate({fmt(mcx - R)} {mcy - R})">'
-               f'<path fill="{ink}" d="{d}"/>' + silhouette(mask, ink, 1.3) + "</g>")
+        pl.add(f'<g transform="translate({fmt(mcx - R)} {mcy - R})">'
+               f'<path fill="{ink}" d="{d}"/>' + silhouette(mask, ink, 1.3))
+        sheen(pl, f"c{i}", f'<circle cx="{R}" cy="{R}" r="{R}"/>', S, f"sweepC d{i + 1}")
+        pl.add("</g>")
         pl.add(f'<circle cx="{fmt(mcx)}" cy="{mcy}" r="{R}" fill="none" stroke="{ink}" stroke-width="1.5"/>')
         pl.add(f'<circle cx="{fmt(mcx)}" cy="{mcy}" r="{R + 6}" fill="none" stroke="{ink}" stroke-width="0.6"/>')
         cap_y = mcy + R + 42
