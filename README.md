@@ -6,8 +6,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/masthead-dark.svg">
-    <img src="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/masthead-light.svg" width="100%" alt="Victor Isaac. Engineer, product builder and founder in Hyderabad. B.Tech undergraduate, founder of Rotciv Inc., Founder's Office at Interseqt, three-time national hackathon winner. I collect whys before I collect tools.">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/masthead-dark.svg?v=2">
+    <img src="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/masthead-light.svg?v=2" width="100%" alt="Victor Isaac. Engineer, product builder and founder in Hyderabad. B.Tech undergraduate, founder of Rotciv Inc., Founder's Office at Interseqt, three-time national hackathon winner. I collect whys before I collect tools.">
   </picture>
 </p>
 
@@ -18,16 +18,16 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/credo-dark.svg">
-    <img src="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/credo-light.svg" width="100%" alt="Credo. Four things I build by. Show the work: agents that cite their sources and stop before they guess. Look closer: the real problem hides under the obvious one. Guard the keys: security is a design decision, not a patch. Carry the light: build things worth inheriting, for people, not the demo.">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/credo-dark.svg?v=2">
+    <img src="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/credo-light.svg?v=2" width="100%" alt="Credo. Four things I build by. Show the work: agents that cite their sources and stop before they guess. Look closer: the real problem hides under the obvious one. Guard the keys: security is a design decision, not a patch. Carry the light: build things worth inheriting, for people, not the demo.">
   </picture>
 </p>
 
 <p align="center">
   <a href="mailto:victorisaacchinta@gmail.com">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/strip-dark.svg">
-      <img src="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/strip-light.svg" width="100%" alt="Instruments: Python, TypeScript, JavaScript, Java, SQL, FastAPI, Next.js, React, Tailwind, Git, Linux. In study: DSA, system design, Docker, AWS, DevSecOps. Correspondence: victorisaacchinta@gmail.com.">
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/strip-dark.svg?v=2">
+      <img src="https://raw.githubusercontent.com/victorisaacchinta-eng/victorisaacchinta-eng/main/assets/folio/strip-light.svg?v=2" width="100%" alt="Instruments: Python, TypeScript, JavaScript, Java, SQL, FastAPI, Next.js, React, Tailwind, Git, Linux. In study: DSA, system design, Docker, AWS, DevSecOps. Correspondence: victorisaacchinta@gmail.com.">
     </picture>
   </a>
 </p>
