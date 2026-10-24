@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Generates the SVG images for the github.com/victorisaacchinta-eng profile README.
+Folio plate generator for github.com/victorisaacchinta-eng
 
-Each illustration is raymarched from signed distance fields, then drawn as
-engraving-style lines in vector SVG. All text is outlined into paths, so the
-images look the same everywhere GitHub shows them.
+Every illustration is raymarched from signed distance fields, then
+line-engraved into vector SVG. All type is outlined into paths, so the
+plates render identically everywhere GitHub shows them.
 
-Edit the Content section (MAST, CREDO, INSTRUMENTS and so on), then run:
+Edit the CONTENT section, then run:
     pip install numpy fonttools uharfbuzz scikit-image
     python3 tools/folio/build.py
-Output goes to assets/folio/ (a light and a dark version of each image).
+Output goes to assets/folio/ (a light and a dark version of each plate).
 """
 import math
 import os
@@ -29,8 +29,11 @@ FONT_DIR = os.path.join(HERE, "fonts")
 
 
 
-# Content: the words on the images. Only put claims here you can back up.
-# Projects are left out on purpose; the pinned repos cover them.
+# ════════════════════════════════════════════════════════════════════
+# CONTENT  (edit freely; keep every claim defensible)
+# This README is about who you are, not a list of repos, so nothing here
+# needs to change when you ship a new project. Pinned repos do that job.
+# ════════════════════════════════════════════════════════════════════
 MAST = {
     "top_left": "THE FOLIO OF VICTOR ISAAC",
     "top_center": "HYDERABAD, INDIA",
@@ -121,7 +124,9 @@ def sheen(pl, cid, shape, w, cls):
            f'<rect class="{cls}" x="-10" y="-200" width="{w + 20}" height="150" fill="url(#sheen)"/></g>')
 
 
-# Type
+# ════════════════════════════════════════════════════════════════════
+# TYPE
+# ════════════════════════════════════════════════════════════════════
 FONT_URLS = {
     "InstrumentSerif-Regular.ttf": "ofl/instrumentserif/InstrumentSerif-Regular.ttf",
     "InstrumentSerif-Italic.ttf": "ofl/instrumentserif/InstrumentSerif-Italic.ttf",
@@ -208,7 +213,9 @@ class Face:
         return size if w <= maxw else size * maxw / w
 
 
-# SDF raymarcher
+# ════════════════════════════════════════════════════════════════════
+# SDF RAYMARCHER
+# ════════════════════════════════════════════════════════════════════
 def nrm(v):
     return v / np.linalg.norm(v, axis=-1, keepdims=True)
 
@@ -379,7 +386,9 @@ def render(scene, cam, light, sky, floor_tone=0.80, floor_fade=None, glow=None):
     return L, Hm, hit
 
 
-# Line engraver
+# ════════════════════════════════════════════════════════════════════
+# LINE ENGRAVER
+# ════════════════════════════════════════════════════════════════════
 def bilinear(A, x, y):
     H, W = A.shape
     x = np.clip(x, 0, W - 1.001)
@@ -498,7 +507,9 @@ def silhouette(mask, color, width):
             f'stroke-linecap="round" d="{"".join(parts)}"/>')
 
 
-# Scenes
+# ════════════════════════════════════════════════════════════════════
+# SCENES
+# ════════════════════════════════════════════════════════════════════
 LIGHT_DIR = (-0.4, 1.0, 0.7)
 
 
@@ -638,7 +649,9 @@ def scene_emblem(kind, S):
     return L, Hm, mask
 
 
-# SVG output
+# ════════════════════════════════════════════════════════════════════
+# SVG PLATES
+# ════════════════════════════════════════════════════════════════════
 class Plate:
     def __init__(self, W, H, pal, title, desc):
         self.W, self.H, self.pal = W, H, pal
@@ -738,7 +751,7 @@ def build_masthead(F, mode, pal, cache):
     pl.hline(M, W - M, 74, 3.2)
     pl.hline(M, W - M, 82, 1.0)
 
-    # engraving, with the sheen pass on load
+    # engraved plate, pulled from the press on load
     px, py, pw, ph = 930, 124, 598, 660
     if "mast" not in cache:
         cache["mast"] = scene_masthead(pw, ph)
