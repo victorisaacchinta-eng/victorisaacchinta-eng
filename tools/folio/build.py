@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Folio plate generator for github.com/victorisaacchinta-eng
+Image generator for the github.com/victorisaacchinta-eng profile README.
 
-Every illustration is raymarched from signed distance fields, then
-line-engraved into vector SVG. All type is outlined into paths, so the
-plates render identically everywhere GitHub shows them.
+The look comes from Bidri, the Deccan craft of hammering silver wire into
+blackened metal. Every picture is raymarched from signed distance fields and
+cut into engraved lines, the inlay is projected onto the surface, and all type
+is outlined into paths so GitHub shows the files exactly as built.
 
 Edit the CONTENT section, then run:
-    pip install numpy fonttools uharfbuzz scikit-image
+    pip install numpy fonttools brotli uharfbuzz scikit-image
     python3 tools/folio/build.py
-Output goes to assets/folio/ (a light and a dark version of each plate).
+Output goes to assets/folio/ (a light and a dark version of each image).
+Type: Big Shoulders Inline Display and Big Shoulders Display (Patric King),
+Schibsted Grotesk (Schibsted). All three are OFL-1.1, fetched from Fontsource.
 """
 import math
 import os
@@ -28,20 +31,13 @@ OUT = os.path.join(ROOT, "assets", "folio")
 FONT_DIR = os.path.join(HERE, "fonts")
 
 
-
-# ════════════════════════════════════════════════════════════════════
-# CONTENT  (edit freely; keep every claim defensible)
-# This README is about who you are, not a list of repos, so nothing here
-# needs to change when you ship a new project. Pinned repos do that job.
-# ════════════════════════════════════════════════════════════════════
+# CONTENT. Keep every claim something you can defend in an interview.
+# Nothing here names a project, so it doesn't need editing when you ship one.
 MAST = {
-    "top_left": "THE FOLIO OF VICTOR ISAAC",
-    "top_center": "HYDERABAD, INDIA",
-    "top_right": "VOL. II · MMXXVI",
-    "kicker": "ENGINEER · PRODUCT BUILDER · FOUNDER",
-    "first": "Victor",
-    "last": "Isaac",
-    # cycles in the masthead, one line at a time
+    "first": "VICTOR",
+    "last": "ISAAC",
+    "role": "Engineer, product builder, founder.",
+    # cycles under the role line, one at a time
     "decks": [
         "I collect whys before I collect tools.",
         "I build agents that show their work.",
@@ -49,98 +45,97 @@ MAST = {
         "I ship the version that tells the truth.",
     ],
     "facts": [
-        ("STUDYING", "B.Tech undergraduate"),
-        ("FOUNDER", "Rotciv Inc."),
-        ("PRODUCT", "Founder's Office, Interseqt"),
-        ("FOCUS", "Agentic AI, security, product"),
+        ("Founder", "Rotciv Inc."),
+        ("Product", "Founder's Office, Interseqt"),
+        ("Record", "Three national hackathon wins"),
+        ("From", "ACE Engineering College"),
     ],
-    "seal_ring": "THREE-TIME NATIONAL HACKATHON WINNER · SAPERE AUDE · ",
+    "seal_ring": "THREE NATIONAL HACKATHON WINS  /  SAPERE AUDE  /  ",
     "seal_center": "III",
-    "seal_under": "WINS",
-    "foot_left": "FROM FIRST PRINCIPLES",
-    "foot_right": "GITHUB.COM/VICTORISAACCHINTA-ENG",
-    "inscription": "SAPERE AUDE",
-    "caption": "Pl. I · Sphaera super basim. After the light.",
+    "caption": "After Bidri: silver hammered into blackened metal.",
 }
 
+CREDO_TITLE = "What I build by"
 CREDO = [
-    dict(emblem="scales", fig="Libra", title="Show the work.",
+    dict(emblem="scales", title="Show the work.",
          body="Agents that cite their sources and stop before they guess."),
-    dict(emblem="lens", fig="Lens", title="Look closer.",
+    dict(emblem="lens", title="Look closer.",
          body="The real problem hides under the obvious one. Find it first."),
-    dict(emblem="key", fig="Clavis", title="Guard the keys.",
+    dict(emblem="key", title="Guard the keys.",
          body="Security is a design decision, not a patch. Guardrails first."),
-    dict(emblem="candle", fig="Lux", title="Carry the light.",
+    dict(emblem="candle", title="Carry the light.",
          body="Build things worth inheriting. For people, not the demo."),
 ]
 
-INSTRUMENTS = [
-    "Python · TypeScript · JavaScript · Java · SQL",
-    "FastAPI · Next.js · React · Tailwind · Git · Linux",
-]
-STUDY = "In study: DSA, system design, Docker, AWS, DevSecOps."
-CONTACT = [
-    "victorisaacchinta@gmail.com",
-    "in/victor-isaac-chintha",
-    "x.com/rotcivcassi",
-]
-COLOPHON = ("Colophon. Set in Instrument Serif and IBM Plex Mono. Engravings raymarched from "
-            "signed distance fields and cut into lines in Python.")
-
+# Colours, each taken from something real.
+#   paper   blackened Bidri zinc (dark) / raw zinc before blackening (light)
+#   ink     hammered silver inlay
+#   accent  the solder-mask blue of the circuit board in my avatar
 PALETTES = {
-    "light": dict(paper="#EEE8DA", ink="#17140F", rubric="#A8361F", muted="#6B6356", rule="#17140F"),
-    "dark": dict(paper="#100F0D", ink="#E8E1D1", rubric="#DE5B40", muted="#8E8676", rule="#E8E1D1"),
+    "dark": dict(paper="#121413", ink="#D9DAD4", muted="#8E938F", accent="#8FA7C2", deck="#B3B7B3",
+                 inlay="#E2E3DD", inlay_shade="#8D928E", body="#121413"),
+    "light": dict(paper="#E3E4DF", ink="#121413", muted="#535855", accent="#16335D", deck="#3F4441",
+                  inlay="#F1F2EE", inlay_shade="#A9ADAA", body="#121413"),
 }
 
-# Motion: a sheen of light passes over each engraving on load, the seal turns,
-# and the masthead line cycles. The first frame is always complete, so a frozen
-# render (background tab, link preview, reduced motion) still shows everything.
+# Motion: light passes once over each engraving the way it slides over polished
+# silver, the seal turns slowly, and the line under the name cycles. Frame one
+# is always complete, so a frozen render still shows everything.
 MOTION_CSS = """
-@keyframes sweepM{from{transform:translateY(0)}to{transform:translateY(900px)}}
+@keyframes sweepM{from{transform:translateY(0)}to{transform:translateY(1000px)}}
 @keyframes sweepC{from{transform:translateY(0)}to{transform:translateY(460px)}}
-.sweepM{animation:sweepM 2.8s cubic-bezier(.4,0,.2,1) .2s both}
-.sweepC{animation:sweepC 2.2s cubic-bezier(.4,0,.2,1) both}
-.d1{animation-delay:.2s}.d2{animation-delay:.5s}.d3{animation-delay:.8s}.d4{animation-delay:1.1s}
+.sweepM{animation:sweepM 3s cubic-bezier(.22,1,.36,1) .3s both}
+.sweepC{animation:sweepC 2.4s cubic-bezier(.22,1,.36,1) both}
+.d1{animation-delay:.3s}.d2{animation-delay:.5s}.d3{animation-delay:.7s}.d4{animation-delay:.9s}
 @keyframes spin{to{transform:rotate(360deg)}}
-.spin{transform-box:view-box;animation:spin 60s linear infinite}
-@keyframes cyc{0%{opacity:0;transform:translateY(14px)}5%{opacity:1;transform:none}22%{opacity:1;transform:none}27%{opacity:0;transform:translateY(-10px)}100%{opacity:0}}
+.spin{transform-box:view-box;animation:spin 80s linear infinite}
+@keyframes cyc{0%{opacity:0;transform:translateY(12px)}5%{opacity:1;transform:none}22%{opacity:1;transform:none}27%{opacity:0;transform:translateY(-8px)}100%{opacity:0}}
 .ph{opacity:0;animation:cyc 18s infinite}.ph1{opacity:1}
 .ph1{animation-delay:-.9s}.ph2{animation-delay:3.6s}.ph3{animation-delay:8.1s}.ph4{animation-delay:12.6s}
 @media (prefers-reduced-motion:reduce){.sweepM,.sweepC,.spin,.ph{animation:none}.ph{opacity:0}.ph1{opacity:1}}
 """
 
 
-def sheen_defs(pl):
-    p = pl.pal["paper"]
+def sheen_defs(pl, color):
     pl.add(f'<defs><linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">'
-           f'<stop offset="0" stop-color="{p}" stop-opacity="0"/>'
-           f'<stop offset=".5" stop-color="{p}" stop-opacity=".8"/>'
-           f'<stop offset="1" stop-color="{p}" stop-opacity="0"/></linearGradient></defs>')
+           f'<stop offset="0" stop-color="{color}" stop-opacity="0"/>'
+           f'<stop offset=".5" stop-color="{color}" stop-opacity=".55"/>'
+           f'<stop offset="1" stop-color="{color}" stop-opacity="0"/></linearGradient></defs>')
 
 
 def sheen(pl, cid, shape, w, cls):
-    """A band of paper-coloured light that starts above the shape and passes down through it once."""
+    """A band of light that starts above the shape and passes down through it once."""
     pl.add(f'<clipPath id="{cid}">{shape}</clipPath><g clip-path="url(#{cid})">'
            f'<rect class="{cls}" x="-10" y="-200" width="{w + 20}" height="150" fill="url(#sheen)"/></g>')
 
 
-# ════════════════════════════════════════════════════════════════════
-# TYPE
-# ════════════════════════════════════════════════════════════════════
-FONT_URLS = {
-    "InstrumentSerif-Regular.ttf": "ofl/instrumentserif/InstrumentSerif-Regular.ttf",
-    "InstrumentSerif-Italic.ttf": "ofl/instrumentserif/InstrumentSerif-Italic.ttf",
-    "IBMPlexMono-Regular.ttf": "ofl/ibmplexmono/IBMPlexMono-Regular.ttf",
-    "IBMPlexMono-Medium.ttf": "ofl/ibmplexmono/IBMPlexMono-Medium.ttf",
+# Type. Fontsource ships woff2; harfbuzz wants a plain font file, so each one is
+# decompressed to .ttf once and cached in tools/folio/fonts/.
+FONTSOURCE = "https://cdn.jsdelivr.net/fontsource/fonts/"
+FONT_FILES = {
+    "inline": "big-shoulders-inline-display@5.3.0/latin-800-normal.woff2",
+    "head": "big-shoulders-display@5.3.0/latin-700-normal.woff2",
+    "headm": "big-shoulders-display@5.3.0/latin-600-normal.woff2",
+    "text": "schibsted-grotesk@5.3.0/latin-400-normal.woff2",
+    "textm": "schibsted-grotesk@5.3.0/latin-500-normal.woff2",
+    "texti": "schibsted-grotesk@5.3.0/latin-400-italic.woff2",
 }
 
 
 def ensure_fonts():
     os.makedirs(FONT_DIR, exist_ok=True)
-    for name, rel in FONT_URLS.items():
-        p = os.path.join(FONT_DIR, name)
-        if not os.path.exists(p):
-            urllib.request.urlretrieve("https://raw.githubusercontent.com/google/fonts/main/" + rel, p)
+    paths = {}
+    for key, rel in FONT_FILES.items():
+        ttf = os.path.join(FONT_DIR, key + ".ttf")
+        if not os.path.exists(ttf):
+            woff2 = ttf[:-4] + ".woff2"
+            urllib.request.urlretrieve(FONTSOURCE + rel, woff2)
+            f = TTFont(woff2)
+            f.flavor = None
+            f.save(ttf)
+            os.remove(woff2)
+        paths[key] = ttf
+    return paths
 
 
 def fmt(v):
@@ -213,9 +208,7 @@ class Face:
         return size if w <= maxw else size * maxw / w
 
 
-# ════════════════════════════════════════════════════════════════════
-# SDF RAYMARCHER
-# ════════════════════════════════════════════════════════════════════
+# Raymarcher: signed distance fields, soft shadows, ambient occlusion
 def nrm(v):
     return v / np.linalg.norm(v, axis=-1, keepdims=True)
 
@@ -386,9 +379,7 @@ def render(scene, cam, light, sky, floor_tone=0.80, floor_fade=None, glow=None):
     return L, Hm, hit
 
 
-# ════════════════════════════════════════════════════════════════════
-# LINE ENGRAVER
-# ════════════════════════════════════════════════════════════════════
+# Engraver: turns a tone map into variable-width parallel lines
 def bilinear(A, x, y):
     H, W = A.shape
     x = np.clip(x, 0, W - 1.001)
@@ -507,39 +498,6 @@ def silhouette(mask, color, width):
             f'stroke-linecap="round" d="{"".join(parts)}"/>')
 
 
-# ════════════════════════════════════════════════════════════════════
-# SCENES
-# ════════════════════════════════════════════════════════════════════
-LIGHT_DIR = (-0.4, 1.0, 0.7)
-
-
-def scene_masthead(W, H):
-    plinth_c, plinth_b = (0, 0.58, 0), (0.98, 0.58, 0.78)
-    sph_c, sph_r = (0, 1.16 + 0.84, 0), 0.84
-
-    def scene(p):
-        return np.minimum(sd_box(local(p, plinth_c), plinth_b, 0.015), sd_sphere(local(p, sph_c), sph_r))
-
-    cam = Cam((0.0, 2.9, 8.1), (0, 1.22, 0), 30, W, H)
-    # light rays radiating from beyond the upper-left corner
-    yy, xx = np.mgrid[0:H, 0:W].astype(float)
-    sx, sy = -0.18 * W, -0.16 * H
-    phi = np.arctan2(yy - sy, xx - sx)
-    dist = np.hypot(xx - sx, yy - sy) / math.hypot(W, H)
-    rays = (0.5 + 0.5 * np.cos(phi * 30)) ** 2
-    fall = np.clip(1.3 - dist, 0, 1)
-    sky = np.clip(0.50 + 0.10 * rays * fall + 0.22 * fall, 0, 1)
-    L, Hm, mask = render(scene, cam, LIGHT_DIR, sky, floor_tone=0.74)
-    # inscription anchor: centre and width of the plinth front face, in plate pixels
-    z = plinth_b[2] + plinth_c[2]
-    left = cam.project((-plinth_b[0], plinth_c[1], z))
-    right = cam.project((plinth_b[0], plinth_c[1], z))
-    top = cam.project((0, plinth_c[1] + plinth_b[1], z))
-    bot = cam.project((0, plinth_c[1] - plinth_b[1], z))
-    face = dict(cx=(left[0] + right[0]) / 2, cy=(top[1] + bot[1]) / 2, w=right[0] - left[0], h=bot[1] - top[1])
-    return L, Hm, mask, face
-
-
 def sd_capsule(p, a, b, r):
     a, b = np.asarray(a, float), np.asarray(b, float)
     pa, ba = p - a, b - a
@@ -634,24 +592,6 @@ EMBLEMS = {
 }
 
 
-def scene_emblem(kind, S):
-    scene, glow = EMBLEMS[kind]
-    cam = Cam((0.0, 2.3, 6.6), (0, 0.98, 0), 21.5, S, S)
-    yy, xx = np.mgrid[0:S, 0:S].astype(float)
-    r = np.hypot(xx - S / 2, yy - S / 2) / (S / 2)
-    sky = 0.84 - 0.12 * r ** 2.2
-    if glow is not None:
-        fx, fy = cam.project(FLAME[0])
-        sky = np.clip(sky + 0.22 * np.exp(-((xx - fx) ** 2 + (yy - fy) ** 2) / (0.18 * S) ** 2), 0, 1)
-    L, Hm, mask = render(scene, cam, LIGHT_DIR, sky, floor_tone=0.70,
-                         floor_fade=lambda pg: np.clip(1.6 - np.hypot(pg[:, 0], pg[:, 2]) / 2.6, 0, 1),
-                         glow=glow)
-    return L, Hm, mask
-
-
-# ════════════════════════════════════════════════════════════════════
-# SVG PLATES
-# ════════════════════════════════════════════════════════════════════
 class Plate:
     def __init__(self, W, H, pal, title, desc):
         self.W, self.H, self.pal = W, H, pal
@@ -713,188 +653,268 @@ class Plate:
         return head + defs + "".join(self.body) + "</svg>"
 
 
-def frame(pl, inset=1.0, w=2.0):
-    c = pl.pal["rule"]
-    pl.add(f'<rect x="{inset}" y="{inset}" width="{pl.W - 2 * inset}" height="{pl.H - 2 * inset}" '
-           f'fill="none" stroke="{c}" stroke-width="{w}"/>')
+
+# Scenes
+LIGHT_DIR = (-0.45, 1.0, 0.75)
+SKY = {"dark": 0.30, "light": 0.97}  # flat ground: no lines in either mode
 
 
-def seal(pl, F, cx, cy, mode):
-    """A turning seal: ring text on a circle, a numeral at its heart."""
+def smin(a, b, k):
+    h = np.clip(0.5 + 0.5 * (b - a) / k, 0, 1)
+    return b * (1 - h) + a * h - k * h * (1 - h)
+
+
+VASE_AXIS_Y = (0.0, 2.9)
+
+
+def sd_vase(p):
+    """A surahi: round belly, long neck, flared mouth, small foot."""
+    q = p.copy()
+    d = sd_ellipsoid(local(q, (0, 1.08, 0)), (0.9, 0.82, 0.9))
+    d = smin(d, sd_cone(local(q, (0, 0.24, 0)), 0.18, 0.34, 0.26), 0.10)
+    d = smin(d, sd_cyl(local(q, (0, 0.05, 0)), 0.40, 0.05, 0.02), 0.04)
+    d = smin(d, sd_cone(local(q, (0, 2.18, 0)), 0.46, 0.30, 0.12), 0.16)
+    d = smin(d, sd_torus(local(q, (0, 2.62, 0)), 0.13, 0.035), 0.03)
+    d = smin(d, sd_cone(local(q, (0, 2.76, 0)), 0.12, 0.13, 0.24), 0.05)
+    return d
+
+
+def frac(x):
+    return x - np.floor(x)
+
+
+def inlay_mask(p, n, v):
+    """Where silver is inlaid on the surahi: a diamond lattice with a
+    four-petal flower in every cell on the belly, plain bands, a chevron
+    border at the shoulder and rings on the neck."""
+    x, y, z = p[:, 0], p[:, 1], p[:, 2]
+    th = np.arctan2(z, x)
+    N = 16
+    u = th / (2 * math.pi) * N
+    vv = (y - 1.08) / 0.34
+    a, b = frac(u + vv), frac(u - vv)
+    da, db = np.minimum(a, 1 - a), np.minimum(b, 1 - b)
+    belly = (y > 0.52) & (y < 1.56)
+    lattice = belly & (np.minimum(da, db) < 0.045)
+    ca, cb = 0.5 - da, 0.5 - db
+    petal = ((ca ** 2 / 0.018 + cb ** 2 / 0.0022) < 1) | ((cb ** 2 / 0.018 + ca ** 2 / 0.0022) < 1)
+    flower = belly & (petal | (ca ** 2 + cb ** 2 < 0.004))
+    band = lambda y0, y1: (y > y0) & (y < y1)
+    bands = band(1.60, 1.64) | band(1.74, 1.77) | band(0.44, 0.48) | band(2.02, 2.05) | band(2.36, 2.39) | band(0.08, 0.11)
+    tri = np.abs(frac(u * 1.0) - 0.5) * 2
+    chevron = band(1.645, 1.735) & (np.abs((y - 1.645) / 0.09 - tri) < 0.24)
+    face = (n * v).sum(-1) > 0.22
+    return (lattice | flower | bands | chevron) & face
+
+
+def scene_vase(W, H, mode):
+    cam = Cam((0.0, 1.9, 7.9), (0, 1.40, 0), 23.5, W, H)
+    ld = nrm(np.asarray(LIGHT_DIR, float))
+    rd = cam.rays()
+    ro = np.broadcast_to(cam.pos, rd.shape).copy()
+    t, hit = march(sd_vase, ro, rd)
+    L = np.full(hit.shape, SKY[mode])
+    Hm = np.zeros(hit.shape)
+    inl = np.zeros(hit.shape, np.int8)  # 0 none, 1 inlay in light, 2 inlay in shade
+
+    idx = np.nonzero(hit)
+    p = ro[idx] + rd[idx] * t[idx][..., None]
+    n = normal(sd_vase, p)
+    v = -rd[idx]
+    dif = np.clip((n * ld).sum(-1), 0, 1)
+    sh = soft_shadow(sd_vase, p + n * 2e-3, ld)
+    refl = 2 * (n * ld).sum(-1, keepdims=True) * n - ld
+    spec = np.clip((refl * v).sum(-1), 0, 1)
+    rim = np.clip(1 - (n * v).sum(-1), 0, 1) ** 3
+    # blackened metal: almost no diffuse, a broad soft sheen and a rim catch
+    lum = 0.06 + 0.16 * dif * sh + 0.55 * spec ** 10 * sh + 0.18 * rim
+    L[idx] = np.clip(lum, 0, 0.9) if mode == "dark" else np.clip(0.05 + 0.6 * spec ** 10 * sh + 0.1 * rim, 0, 0.9)
+    Hm[idx] = np.clip((n * v).sum(-1), 0, 1)
+    m = inlay_mask(p, n, v)
+    lit = (dif * sh) > 0.32
+    inl[tuple(i[m & lit] for i in idx)] = 1
+    inl[tuple(i[m & ~lit] for i in idx)] = 2
+
+    # floor: only the cast shadow and a soft pool of light, fading out
+    miss = ~hit & (rd[..., 1] < -1e-4)
+    fidx = np.nonzero(miss)
+    tg = -ro[fidx][..., 1] / rd[fidx][..., 1]
+    pg = ro[fidx] + rd[fidx] * tg[..., None]
+    shg = soft_shadow(sd_vase, pg + np.array([0, 2e-3, 0]), ld, k=6.0)
+    fade = np.clip(1.5 - np.hypot(pg[:, 0] + 0.3, pg[:, 2]) / 1.9, 0, 1)
+    if mode == "dark":
+        L[fidx] = SKY[mode] + fade * (0.20 * shg + 0.02)
+    else:
+        L[fidx] = SKY[mode] - fade * 0.55 * (1 - shg)
+    return L, Hm, hit, inl
+
+
+def scene_emblem(kind, S, mode):
+    scene, glow = EMBLEMS[kind]
+    cam = Cam((0.0, 2.3, 6.6), (0, 0.98, 0), 21.5, S, S)
+    sky = np.full((S, S), SKY[mode])
+    if glow is not None and mode == "dark":
+        yy, xx = np.mgrid[0:S, 0:S].astype(float)
+        fx, fy = cam.project(FLAME[0])
+        sky = np.clip(sky + 0.45 * np.exp(-((xx - fx) ** 2 + (yy - fy) ** 2) / (0.16 * S) ** 2), 0, 1)
+    tone = 0.62 if mode == "dark" else 0.80
+    L, Hm, mask = render(scene, cam, LIGHT_DIR, sky, floor_tone=tone,
+                         floor_fade=lambda pg: np.clip(1.5 - np.hypot(pg[:, 0], pg[:, 2]) / 2.2, 0, 1),
+                         glow=glow)
+    if mode == "dark":
+        # the floor lights up silver where lit, stays black in shadow
+        miss = ~mask
+        L[miss] = np.where(L[miss] > SKY[mode] + 0.02, L[miss], SKY[mode])
+    return L, Hm, mask
+
+
+def mask_paths(m):
+    """Filled outlines of a boolean mask, as SVG path data (even-odd)."""
+    f = m.astype(float)
+    k = np.array([1, 2, 1], float) / 4
+    f = np.apply_along_axis(lambda r: np.convolve(r, k, "same"), 1, f)
+    f = np.apply_along_axis(lambda c: np.convolve(c, k, "same"), 0, f)
+    f = np.pad(f, 1)
+    parts = []
+    for c in find_contours(f, 0.5):
+        if len(c) < 5:
+            continue
+        xy = c[:, ::-1] - 1
+        h = len(xy) // 2  # closed curve: simplify each half so the endpoints differ
+        xy = np.vstack([rdp(xy[:h + 1], 0.25), rdp(xy[h:], 0.25)[1:]])
+        parts.append("M" + " ".join(fmt(x) + " " + fmt(y) for x, y in xy) + "Z")
+    return "".join(parts)
+
+
+# Images
+def seal(pl, F, cx, cy, R=96):
+    """A turning ring of text with the number of wins at its heart."""
     pal = pl.pal
-    ink, rub, mut = pal["ink"], pal["rubric"], pal["muted"]
-    pl.add(f'<circle cx="{cx}" cy="{cy}" r="92" fill="{pal["paper"]}"/>')
-    pl.add(f'<circle cx="{cx}" cy="{cy}" r="88" fill="none" stroke="{ink}" stroke-width="1.6"/>')
-    pl.add(f'<circle cx="{cx}" cy="{cy}" r="83" fill="none" stroke="{ink}" stroke-width="0.6"/>')
-    pl.add(f'<circle cx="{cx}" cy="{cy}" r="60" fill="none" stroke="{ink}" stroke-width="0.9"/>')
-    pl.add(f'<g class="spin" style="transform-origin:{cx}px {cy}px">')
-    pl.text_circle(F["monom"], MAST["seal_ring"], 14.5, cx, cy, 67, ink)
+    ink, acc, paper = pal["ink"], pal["accent"], pal["paper"]
+    pl.add(f'<circle cx="{fmt(cx)}" cy="{fmt(cy)}" r="{R}" fill="{paper}"/>')
+    pl.add(f'<circle cx="{fmt(cx)}" cy="{fmt(cy)}" r="{R - 5}" fill="none" stroke="{ink}" stroke-width="2.4"/>')
+    pl.add(f'<circle cx="{fmt(cx)}" cy="{fmt(cy)}" r="{R - 36}" fill="none" stroke="{ink}" stroke-width="1.2"/>')
+    pl.add(f'<g class="spin" style="transform-origin:{fmt(cx)}px {fmt(cy)}px">')
+    pl.text_circle(F["headm"], MAST["seal_ring"], 17, cx, cy, R - 30, ink)
     pl.add("</g>")
-    pl.text(F["serif"], MAST["seal_center"], 66, cx, cy + 16, rub, 0.04, "middle")
-    pl.text(F["monom"], MAST["seal_under"], 11, cx, cy + 40, mut, 0.3, "middle")
+    pl.text(F["head"], MAST["seal_center"], 68, cx, cy + 24, acc, 0.04, "middle")
 
 
 def build_masthead(F, mode, pal, cache):
-    W, H = 1600, 920
-    pl = Plate(W, H, pal, "Victor Isaac, personal folio",
-               "Victor Isaac. Engineer, product builder and founder in Hyderabad. B.Tech undergraduate, "
-               "founder of Rotciv Inc., Founder's Office at Interseqt, three-time national hackathon winner. "
-               "I collect whys before I collect tools. An engraved sphere rests on a plinth inscribed Sapere Aude.")
+    W, H = 1600, 1030
+    pl = Plate(W, H, pal, "Victor Isaac",
+               "Victor Isaac. Engineer, product builder and founder in Hyderabad. Founder of Rotciv Inc., "
+               "Founder's Office at Interseqt, three national hackathon wins, from ACE Engineering College. "
+               "An engraved surahi vase with silver inlay in the style of Bidri, and a seal reading "
+               "Sapere aude.")
     pl.style(MOTION_CSS)
-    ink, rub, mut = pal["ink"], pal["rubric"], pal["muted"]
-    M = 72
-    serif, ital, monom = F["serif"], F["ital"], F["monom"]
+    ink, mut, acc = pal["ink"], pal["muted"], pal["accent"]
+    M = 84
 
-    pl.text(monom, MAST["top_left"], 19, M, 52, ink, 0.16)
-    pl.text(monom, MAST["top_center"], 19, W / 2, 52, mut, 0.16, "middle")
-    pl.text(monom, MAST["top_right"], 19, W - M, 52, ink, 0.16, "end")
-    pl.hline(M, W - M, 74, 3.2)
-    pl.hline(M, W - M, 82, 1.0)
-
-    # engraved plate, pulled from the press on load
-    px, py, pw, ph = 930, 124, 598, 660
-    if "mast" not in cache:
-        cache["mast"] = scene_masthead(pw, ph)
-    L, Hm, mask, face = cache["mast"]
+    # the surahi, right side, full height
+    px, py, pw, ph = 880, 24, 680, 800
+    key = "vase-" + mode
+    if key not in cache:
+        cache[key] = scene_vase(pw, ph, mode)
+    L, Hm, mask, inl = cache[key]
     clip = lambda x, y: np.ones_like(x, bool)
-    d = engraving(L, Hm, mask, mode, clip, spacing=6.0, maxw=5.4, disp=9)
-    sheen_defs(pl)
-    pl.add(f'<g transform="translate({px} {py})"><path fill="{ink}" d="{d}"/>')
-    pl.add(silhouette(mask, ink, 1.3))
-    insz = serif.fit(MAST["inscription"], 44, face["w"] * 0.62, 0.22)
-    tw = serif.width(MAST["inscription"], insz, 0.22)
-    pl.add(f'<rect x="{fmt(face["cx"] - tw / 2 - 22)}" y="{fmt(face["cy"] - insz * 0.62)}" '
-           f'width="{fmt(tw + 44)}" height="{fmt(insz * 1.24)}" fill="{pal["paper"]}"/>')
-    pl.add(f'<rect x="{fmt(face["cx"] - tw / 2 - 16)}" y="{fmt(face["cy"] - insz * 0.62 + 6)}" '
-           f'width="{fmt(tw + 32)}" height="{fmt(insz * 1.24 - 12)}" fill="none" stroke="{ink}" stroke-width="1"/>')
-    pl.text(serif, MAST["inscription"], insz, face["cx"], face["cy"] + insz * 0.34, ink, 0.22, "middle")
-    sheen(pl, "cm", f'<rect width="{pw}" height="{ph}"/>', pw, "sweepM")
+    d = engraving(L, Hm, mask, mode, clip, spacing=5.2, maxw=4.8, disp=8, hatch_angle=32)
+    body = mask_paths(mask)
+    sheen_defs(pl, pal["inlay"])
+    pl.add(f'<g transform="translate({px} {py})">')
+    pl.add(f'<path fill="{ink}" d="{d}"/>')
+    pl.add(silhouette(mask, ink, 1.4))
+    pl.add(f'<path fill="{pal["inlay_shade"]}" d="{mask_paths(inl == 2)}"/>')
+    pl.add(f'<path fill="{pal["inlay"]}" d="{mask_paths(inl == 1)}"/>')
+    sheen(pl, "cm", f'<path d="{body}"/>', pw, "sweepM")
     pl.add("</g>")
-    pl.add(f'<rect x="{px - 10}" y="{py - 10}" width="{pw + 20}" height="{ph + 20}" fill="none" stroke="{ink}" stroke-width="1.6"/>')
-    pl.add(f'<rect x="{px - 4}" y="{py - 4}" width="{pw + 8}" height="{ph + 8}" fill="none" stroke="{ink}" stroke-width="0.8"/>')
-    pl.text(ital, MAST["caption"], 23, px + pw / 2 - 60, py + ph + 46, mut, 0, "middle")
-    seal(pl, F, px + pw - 52, py + ph - 40, mode)
+    pl.text(F["texti"], MAST["caption"], 21, W - M, py + ph + 14, mut, 0, "end")
+    seal(pl, F, W - M - 96, 150)
 
-    # left column
-    colw = px - 10 - M - 56
-    pl.text(monom, MAST["kicker"], 20, M, 162, rub, 0.18)
-    size = min(serif.fit(MAST["first"], 236, colw), ital.fit(MAST["last"] + ".", 236, colw))
-    pl.text(serif, MAST["first"], size, M - size * 0.02, 162 + size * 0.86, ink)
-    base = 162 + size * 1.64
-    w_last = pl.text(ital, MAST["last"], size, M, base, ink)
-    pl.text(ital, ".", size, M + w_last, base, rub)
+    # left column: name, role, cycling line, facts
+    colw = px - M - 60
+    inline = F["inline"]
+    size = min(inline.fit(MAST["first"], 330, colw, 0.01), inline.fit(MAST["last"], 330, colw, 0.01))
+    top = 92
+    pl.text(inline, MAST["first"], size, M - size * 0.03, top + size * 0.80, ink, 0.01)
+    base2 = top + size * 0.80 + size * 0.86
+    pl.text(inline, MAST["last"], size, M - size * 0.03, base2, ink, 0.01)
 
-    deck_y = base + 86
-    dsz = min(ital.fit(t, 44, colw) for t in MAST["decks"])
+    ry = base2 + 78
+    pl.text(F["textm"], MAST["role"], F["textm"].fit(MAST["role"], 40, colw), M, ry, ink)
+    dsz = min(F["text"].fit(t, 38, colw) for t in MAST["decks"])
     for i, t in enumerate(MAST["decks"], 1):
-        pl.text(ital, t, dsz, M, deck_y, ink, cls=f"ph ph{i}")
+        pl.text(F["text"], t, dsz, M, ry + 54, pal["deck"], cls=f"ph ph{i}")
 
-    fy = deck_y + 56
-    pl.hline(M, M + colw, fy, 1.0)
+    # facts run the full width along the bottom, one line each
+    fy = 918
     n = len(MAST["facts"])
-    gap = 24
-    cw = (colw - gap * (n - 1)) / n
+    gap = 40
+    cw = (W - 2 * M - gap * (n - 1)) / n
+    vs = min(F["headm"].fit(val, 40, cw) for _, val in MAST["facts"])
     for i, (lab, val) in enumerate(MAST["facts"]):
         x = M + i * (cw + gap)
-        if i:
-            pl.rect(x - gap / 2, fy + 18, 0.8, 92, mut)
-        pl.text(monom, lab, 16, x, fy + 40, rub, 0.16)
-        for j, line in enumerate(serif.wrap(val, 29, cw)[:2]):
-            pl.text(serif, line, 29, x, fy + 78 + j * 31, ink)
-
-    pl.hline(M, W - M, H - 62, 1.0)
-    pl.text(monom, MAST["foot_left"], 17, M, H - 28, ink, 0.18)
-    pl.text(monom, MAST["foot_right"], 17, W - M, H - 28, mut, 0.18, "end")
+        pl.text(F["textm"], lab, 21, x, fy, acc)
+        pl.text(F["headm"], val, vs, x, fy + 46, ink)
     return pl.svg()
 
 
-NUM_WORDS = {3: "THREE", 4: "FOUR", 5: "FIVE", 6: "SIX"}
+def inlay_ring(pl, cx, cy, r, color, count=44, size=5.5):
+    """A rim of small inlaid diamonds, like the border of a Bidri plate."""
+    parts = []
+    for k in range(count):
+        a = 2 * math.pi * k / count
+        x, y = cx + r * math.cos(a), cy + r * math.sin(a)
+        ux, uy = math.cos(a), math.sin(a)
+        tx, ty = -uy, ux
+        pts = [(x + ux * size * 1.5, y + uy * size * 1.5), (x + tx * size * 0.75, y + ty * size * 0.75),
+               (x - ux * size * 1.5, y - uy * size * 1.5), (x - tx * size * 0.75, y - ty * size * 0.75)]
+        parts.append("M" + "L".join(fmt(px) + " " + fmt(py) for px, py in pts) + "Z")
+    pl.add(f'<path fill="{color}" d="{"".join(parts)}"/>')
 
 
 def build_credo(F, mode, pal, cache):
-    W, H = 1600, 700
-    desc = "Credo. " + " ".join(f"{c['title']} {c['body']}" for c in CREDO)
-    pl = Plate(W, H, pal, "Credo", desc)
+    W, H = 1600, 690
+    desc = CREDO_TITLE + ". " + " ".join(f"{c['title']} {c['body']}" for c in CREDO)
+    pl = Plate(W, H, pal, CREDO_TITLE, desc)
     pl.style(MOTION_CSS)
-    sheen_defs(pl)
-    ink, rub, mut = pal["ink"], pal["rubric"], pal["muted"]
-    serif, ital, mono, monom = F["serif"], F["ital"], F["mono"], F["monom"]
-    M = 72
-    frame(pl, 1.0, 2.0)
-    pl.text(ital, "Credo.", 92, M, 124, ink)
-    pl.text(monom, "§ I", 20, W - M, 78, rub, 0.18, "end")
-    pl.text(mono, f"{NUM_WORDS[len(CREDO)]} THINGS I BUILD BY", 18, W - M, 112, mut, 0.16, "end")
-    pl.hline(M, W - M, 154, 0.9)
+    sheen_defs(pl, pal["inlay"])
+    ink, mut = pal["ink"], pal["muted"]
+    M = 84
+    pl.text(F["head"], CREDO_TITLE.upper(), 76, M, 132, ink, 0.01)
     n = len(CREDO)
-    gap = 44
+    gap = 56
     cw = (W - 2 * M - gap * (n - 1)) / n
-    R = 120
-    numerals = ["I", "II", "III", "IV", "V", "VI"]
+    R = 112
     for i, c in enumerate(CREDO):
         x0 = M + i * (cw + gap)
-        if i:
-            pl.rect(x0 - gap / 2, 178, 0.8, H - 210, mut)
-        mcx, mcy = x0 + cw / 2, 168 + 26 + R
+        mcx, mcy = x0 + R + 22, 190 + R + 22
         S = 2 * R
-        key = "emb-" + c["emblem"]
+        key = f"emb-{c['emblem']}-{mode}"
         if key not in cache:
-            cache[key] = scene_emblem(c["emblem"], S)
+            cache[key] = scene_emblem(c["emblem"], S, mode)
         L, Hm, mask = cache[key]
-        clip = lambda x, y: np.hypot(x - S / 2, y - S / 2) < R - 5
-        d = engraving(L, Hm, mask, mode, clip, spacing=4.2, maxw=3.8, disp=6)
+        clip = lambda x, y: np.hypot(x - S / 2, y - S / 2) < R - 4
+        d = engraving(L, Hm, mask, mode, clip, spacing=4.0, maxw=3.6, disp=6)
         pl.add(f'<g transform="translate({fmt(mcx - R)} {mcy - R})">'
-               f'<path fill="{ink}" d="{d}"/>' + silhouette(mask, ink, 1.3))
+               f'<path fill="{ink}" d="{d}"/>' + silhouette(mask, ink, 1.2))
         sheen(pl, f"c{i}", f'<circle cx="{R}" cy="{R}" r="{R}"/>', S, f"sweepC d{i + 1}")
         pl.add("</g>")
-        pl.add(f'<circle cx="{fmt(mcx)}" cy="{mcy}" r="{R}" fill="none" stroke="{ink}" stroke-width="1.5"/>')
-        pl.add(f'<circle cx="{fmt(mcx)}" cy="{mcy}" r="{R + 6}" fill="none" stroke="{ink}" stroke-width="0.6"/>')
-        cap_y = mcy + R + 42
-        pl.text(ital, f"Fig. {numerals[i]} · {c['fig']}", 22, mcx, cap_y, mut, 0, "middle")
-        pl.hline(x0, x0 + cw, cap_y + 24, 0.9)
-        ts = serif.fit(c["title"], 50, cw)
-        pl.text(monom, numerals[i], 16, x0, cap_y + 64, rub, 0.16)
-        pl.text(serif, c["title"], ts, x0, cap_y + 112, ink)
-        lines = ital.wrap(c["body"], 26, cw)
+        pl.add(f'<circle cx="{fmt(mcx)}" cy="{mcy}" r="{R + 3}" fill="none" stroke="{ink}" stroke-width="2.2"/>')
+        inlay_ring(pl, mcx, mcy, R + 16, pal["inlay"] if mode == "dark" else ink)
+        ty = mcy + R + 84
+        ts = F["head"].fit(c["title"].upper(), 46, cw)
+        pl.text(F["head"], c["title"].upper(), ts, x0, ty, ink, 0.01)
+        lines = F["text"].wrap(c["body"], 23, cw)
         assert len(lines) <= 2, f"credo body runs past two lines: {c['title']}"
         for j, line in enumerate(lines):
-            pl.text(ital, line, 26, x0, cap_y + 152 + j * 32, ink)
-    return pl.svg()
-
-
-def build_strip(F, pal):
-    W, H = 1600, 330
-    desc = ("Instruments: " + "; ".join(INSTRUMENTS) + ". " + STUDY +
-            " Correspondence: " + ", ".join(CONTACT) + ".")
-    pl = Plate(W, H, pal, "Instruments and correspondence", desc)
-    ink, rub, mut = pal["ink"], pal["rubric"], pal["muted"]
-    serif, ital, mono, monom = F["serif"], F["ital"], F["mono"], F["monom"]
-    M = 72
-    frame(pl, 1.0, 2.0)
-    split = 900
-    pl.text(monom, "§ II  INSTRUMENTS", 17, M, 66, rub, 0.16)
-    for j, line in enumerate(INSTRUMENTS):
-        sz = serif.fit(line, 38, split - M - 60)
-        pl.text(serif, line, sz, M, 122 + j * 46, ink)
-    pl.text(ital, STUDY, 25, M, 218, mut)
-    pl.rect(split, 40, 0.8, 200, mut)
-    x2 = split + 48
-    pl.text(monom, "§ III  CORRESPONDENCE", 17, x2, 66, rub, 0.16)
-    for j, line in enumerate(CONTACT):
-        sz = mono.fit(line, 25, W - M - x2)
-        pl.text(mono, line, sz, x2, 118 + j * 44, ink)
-    pl.hline(M, W - M, 258, 0.9)
-    right = "FROM FIRST PRINCIPLES"
-    rw = monom.width(right, 15, 0.18)
-    csz = ital.fit(COLOPHON, 21, W - 2 * M - rw - 40)
-    pl.text(ital, COLOPHON, csz, M, 298, mut)
-    pl.text(monom, right, 15, W - M, 297, ink, 0.18, "end")
+            pl.text(F["text"], line, 23, x0, ty + 42 + j * 31, mut)
     return pl.svg()
 
 
 def main():
-    ensure_fonts()
-    F = dict(serif=Face("InstrumentSerif-Regular.ttf", "s"), ital=Face("InstrumentSerif-Italic.ttf", "i"),
-             mono=Face("IBMPlexMono-Regular.ttf", "m"), monom=Face("IBMPlexMono-Medium.ttf", "n"))
+    paths = ensure_fonts()
+    F = {k: Face(os.path.basename(p), k[0] + str(i)) for i, (k, p) in enumerate(paths.items())}
     os.makedirs(OUT, exist_ok=True)
     for old in os.listdir(OUT):
         if old.endswith(".svg"):
@@ -902,8 +922,7 @@ def main():
     cache = {}
     for mode, pal in PALETTES.items():
         files = {"masthead": build_masthead(F, mode, pal, cache),
-                 "credo": build_credo(F, mode, pal, cache),
-                 "strip": build_strip(F, pal)}
+                 "credo": build_credo(F, mode, pal, cache)}
         for name, svg in files.items():
             p = os.path.join(OUT, f"{name}-{mode}.svg")
             with open(p, "w") as fh:
