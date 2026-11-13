@@ -3,8 +3,10 @@
 A turning Earth, ordered-dithered into lime pixels on black, saved as a GIF.
 
 Land comes from Natural Earth (public domain) via the world-atlas package:
+    pip install numpy Pillow
     npm pack world-atlas && tar xzf world-atlas-*.tgz
     python3 tools/folio/globe.py package/land-50m.json
+Output goes to assets/folio/globe.gif.
 """
 import json
 import math
@@ -106,7 +108,9 @@ def frame(mask, S, rot, tilt=18.0):
 
 
 def main():
-    mask = land_mask(sys.argv[1] if len(sys.argv) > 1 else "/tmp/wa/package/land-50m.json")
+    if len(sys.argv) != 2:
+        sys.exit("usage: python3 tools/folio/globe.py package/land-50m.json")
+    mask = land_mask(sys.argv[1])
     S, n, scale = 200, 36, 2
     pal = list(BLACK) + list(LIME) + list(FOREST) + [0] * (256 * 3 - 9)
     frames = []
